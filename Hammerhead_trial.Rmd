@@ -1,0 +1,925 @@
+---
+title: "Hammerhead Trial"
+output: html_document
+---
+
+Need two read.csvs for each because they are all coming from different sources.
+
+libraries
+```{r}
+library(sp)
+library(rgdal)
+library(rgeos)
+library(adehabitatHR)
+library(leaflet)
+library(tidyverse)
+library(devtools)
+library(googledrive)
+library(lubridate)
+library(data.table)
+```
+
+GO TO LINE 200
+
+```{r}
+
+
+setwd("C:/Users/Molly.Scott/Documents/Vemco/VUE/ReceiverLogs/HAMMERHEAD DATA/Hammerhead_Data")
+
+
+hammer.VR2W_2 <- read.csv("C:/Users/Molly/Documents/HAMMERHEAD DATA/Hammerhead_Carls Data_VR2W_2.csv")
+
+
+hammer.VR2W_2 <- read.csv("C:/Users/Molly.Scott/Documents/HAMMERHEAD DATA/Hammerhead_Data/Hammerhead_Carls Data_VR2W_2.csv")
+
+
+str(hammer.VR2W_2)
+
+View(distinct(hammer.VR2W_2, Receiver, Station.Name, Latitude, Longitude))
+
+stat.info.hammer.VR2W_2 = distinct(hammer.VR2W_2, Receiver, Station.Name, Latitude, Longitude)
+
+head(stat.info.hammer.VR2W_2)
+
+```
+
+Do for Carls Data.vdb
+
+```{r}
+
+hammer.carl <- read.csv("C:/Users/Molly/Documents/Vemco/VUE/ReceiverLogs/HAMMERHEAD DATA/Hammerhead_Carls Data.csv")
+
+
+hammer.carl <- read.csv("C:/Users/Molly.Scott/Documents/HAMMERHEAD DATA/Hammerhead_Data/Hammerhead_Carls Data.csv")
+
+
+str(hammer.carl)
+
+View(distinct(hammer.carl, Receiver, Station.Name, Latitude, Longitude))
+
+stat.info.hammer.carl = distinct(hammer.carl, Receiver, Station.Name, Latitude, Longitude)
+
+head(stat.info.hammer.carl)
+
+
+```
+
+Do for KBay_MBA
+
+```{r}
+
+hammer.MBA <- read.csv("C:/Users/Molly/Documents/Vemco/VUE/ReceiverLogs/HAMMERHEAD DATA/Hammerhead_KBayMBA.csv")
+
+hammer.MBA <- read.csv("C:/Users/Molly.Scott/Documents/HAMMERHEAD DATA/Hammerhead_Data/Hammerhead_KBayMBA.csv")
+
+str(hammer.MBA)
+
+View(distinct(hammer.MBA, Receiver, Station.Name, Latitude, Longitude))
+
+stat.info.MBA = distinct(hammer.MBA, Receiver, Station.Name, Latitude, Longitude)
+
+head(stat.info.MBA)
+
+
+#write.csv(stat.info.MBA, file="stat.info.MBA.csv")
+```
+
+Carls VR2W data_1b (but from Carls_Data_VR2W)
+
+```{r}
+
+hammer.1b <- read.csv("C:/Users/Molly/Documents/Vemco/VUE/ReceiverLogs/HAMMERHEAD DATA/Hammerhead_Carls Data_VR2W_1b.csv")
+
+hammer.1b <- read.csv("C:/Users/Molly.Scott/Documents/HAMMERHEAD DATA/Hammerhead_Data/Hammerhead_Carls Data_VR2W_1b.csv")
+
+
+
+str(hammer.1b)
+
+View(distinct(hammer.1b, Receiver, Station.Name, Latitude, Longitude))
+
+stat.info.1b = distinct(hammer.1b, Receiver, Station.Name, Latitude, Longitude)
+
+head(stat.info.1b)
+
+getwd()
+setwd("C:/Users/Molly/Documents/Vemco/VUE/ReceiverLogs/HAMMERHEAD DATA")
+
+write.csv(stat.info.1b, file="stat.info.1b.csv")
+
+```
+
+Carls Hammer data.1a (from the first edit)
+
+1a was created from the VR2W vdb but there was so many detections in the initial file that I have to continue by making a 1b otherwise Vue was collapsing
+
+
+```{r}
+
+hammer.1a <- read.csv("C:/Users/Molly/Documents/Vemco/VUE/ReceiverLogs/HAMMERHEAD DATA/Hammerhead_Carls Data_VR2W_1a.csv")
+
+hammer.1a <- read.csv("C:/Users/Molly.Scott/Documents/HAMMERHEAD DATA/Hammerhead_Data/Hammerhead_Carls Data_VR2W_1a.csv")
+
+str(hammer.1a)
+
+View(distinct(hammer.1a, Receiver, Station.Name, Latitude, Longitude))
+
+stat.info.1a = distinct(hammer.1a, Receiver, Station.Name, Latitude, Longitude)
+
+head(stat.info.1a)
+
+unique(hammer.1a$Transmitter)
+```
+
+
+
+bind all together to get overall stat info containing only receiver name, station information, lat, long
+
+
+```{r}
+
+stat.info= bind_rows(stat.info.hammer.VR2W_2, stat.info.hammer.carl, stat.info.MBA, stat.info.1b, stat.info.1a)
+
+head(stat.info)
+
+stat.info.distinct1 = distinct(stat.info, Station.Name)
+
+stat.info.distinct2 = distinct(stat.info, Station.Name, Latitude, Longitude)
+
+stat.info.distinct = stat.info %>% distinct(Station.Name, Latitude, Longitude, .keep_all = TRUE)
+
+write.csv(stat.info.distinct, file="stat.info.csv")
+
+stat.info = read.csv("C:/Users/Molly/Documents/Vemco/VUE/ReceiverLogs/HAMMERHEAD DATA/stat.info.csv")
+
+```
+
+join all detection data together 
+
+
+```{r}
+
+setwd("C:/Users/Molly.Scott/Documents/Vemco/VUE/ReceiverLogs/HAMMERHEAD DATA")
+
+hammer.all = bind_rows(hammer.1a, hammer.1b, hammer.carl,hammer.MBA, hammer.VR2W_2)
+
+head(hammer.all)
+
+getwd()
+
+write.csv(hammer.all, file="hammer.all.csv")
+
+
+```
+
+
+We are going to use stat.info.try to begin with 
+
+```{r}
+stat.info = read.csv("C:/Users/Molly.Scott/Documents/Vemco/VUE/ReceiverLogs/HAMMERHEAD DATA/stat.info.try.csv")
+str(stat.info)
+
+```
+
+
+now we are going to flip over to Vinays project and try and use his code
+
+```{r}
+library(sp)
+library(rgdal)
+library(rgeos)
+library(adehabitatHR)
+library(leaflet)
+library(tidyverse)
+library(devtools)
+library(lubridate)
+library(data.table)
+```
+ Load the blacktip shark data using data.table because it is faster
+ 
+ NB: this .csv contains all the data ready to go there is no need to create new date.time column or anything, just turn to posix.
+
+```{r}
+
+hammer <- fread("C:/Users/Molly.Scott/Documents/Vemco/VUE/ReceiverLogs/HAMMERHEAD DATA/hammer.all.csv", header = TRUE)
+
+
+
+str(hammer)
+
+unique(hammer$Transmitter)
+```
+
+try some functionality out with data.table
+plot a simple bar chart of the number of detections of a certain transmitter - lets say transmitter A69-9002-7919 by each recevier 
+
+```{r}
+hammer %>% 
+  subset(Transmitter == "A69-9002-7919") %>% # subset dataset to include only detections by 'Colin'
+  with(table(Station.Name)) %>% # create a table with the number of rows (i.e. detections) per receiver
+  barplot(las=2, xlab="Receiver station", ylab="Number of Detections") # barplot of number of Colin's detections recorded per receiver
+```
+
+now lets use lubridate to convert UTC time to hawaiian time which is UTC-10:00
+and also in the lubridate package is tz(x) <- "Pacific/Honolulu"
+
+```{r}
+str(hammer)
+
+names(hammer)[names(hammer)=="ï..Date.and.Time..UTC."]<-"Date.Time.UTC"
+
+```
+lubridate
+lubridate is an easy way to convert date and time data into a form that R can recognise
+Allows for calculation of durations and intervals between dates.
+Recognises multiple date time formats and parses them to a standardised ‘POSIX’ format that R uses (ymd for dates; ymd_hms for date and time parsing)
+These features are very important when working with spatio-temporal datasets like telemetry data
+Currently in our blacktip dataset the “Date.and/Time..UTC.” column is recognised as “characters” and recorded in the Universal Coordinated Time Zone (UTC). Let’s use lubridate to convert this column into the ‘POSIX’ format and into the local date time (i.e. UTC - 10 hours).
+
+```{r}
+
+
+hammer$Local.Date.Time<- 
+  hammer$`Date.Time.UTC` %>%
+  ymd_hms(tz="UTC") %>% # first convert the `Date and Time (UTC)` column into a 'POSIX' format 
+  with_tz(tzone="Pacific/Honolulu") # convert to local "Australia/Brisbane" date time (UTC + 10hrs)
+
+str(hammer)
+
+write.csv(hammer, file="hammer.all.csv")
+
+#skip to line 248
+```
+
+now lets select only the columns we are interested in using dplyr language
+Select the rows we are interested in
+
+```{r}
+
+hammer <- 
+  hammer %>% 
+  select(local.Date.time, Latitude, Longitude, Receiver, Station.Name, Transmitter) %>% # columns we want to include
+  dplyr::select(-Sensor.Value, -Transmitter.Name, -Transmitter.Serial, -Sensor.Unit, -location.Date.Time) # the minus symbol denotes columns we want to drop
+
+head(hammer)
+
+str(hammer)
+```
+
+
+select with minus sign isnt working for me so am going back to my faithful way df$colname = NULL
+
+```{r}
+hammer$Transmitter.Name = NULL
+hammer$Transmitter.Serial = NULL
+hammer$Sensor.Unit = NULL
+hammer$Sensor.Value = NULL
+#hammer$local.date.time = NULL
+
+str(hammer)
+
+
+getwd()
+
+
+#names(hammer)[names(hammer)=="local.date.time"]<-"Local.Date.Time"
+
+```
+
+determine the total number of detections for each tagged shark  using group_by and summarise
+
+```{r}
+hammer %>%
+  group_by(Transmitter) %>%
+  summarise(NumDetections = n()) # summarise number of detections per tagged shark
+
+hammer %>%
+  group_by(Transmitter, Receiver) %>%
+  summarise(NumDetections = n()) # summarise number of detections per shark at each receiver
+
+str(hammer)
+```
+
+**UNSURE WHY THIS IS NECESSARY**
+
+using mutate to add and remove data to the data frame through a pipe
+
+now we want to separate the local date time column into two 
+
+```{r}
+
+hammer <- 
+  hammer %>%
+  separate(Local.Date.Time, c("Date", "Time"), sep = " ", remove=FALSE)
+
+head(hammer)
+
+```
+
+
+NOW FOR DATA VISUALISATION USING GGPLOT
+
+```{r}
+library(ggplot2)
+```
+
+recall the dataset we just made above with a histogram of detections
+
+```{r}
+
+hammer %>%
+  group_by(Transmitter, Date) %>% 
+  summarise(DailyDetections= n()) %>% # use summarise to calculate numbers of detections per day per animal
+  ggplot(mapping = aes(x = Transmitter, y = DailyDetections)) + # define the aesthetic map (what to plot)
+  xlab("Tag") + ylab("Number of detections per day") +
+  geom_boxplot() + # define the geometric object (how to plot it).. in this case a boxplot
+       theme_classic()+
+  theme(legend.position=c(0.9,0.95),
+        legend.title = element_blank(), 
+        axis.text.x=element_text(angle=40,  vjust=0.5, size=9, color="black"),
+        axis.text.y=element_text(color="black"))
+
+  #ggtitle("Heron")
+
+```
+
+Tag 1303-54798 most probably died right next to a receiver so has an enormous amount of pings compared with other data
+
+A common plot used in passive acoustic telemetry to assess temporal patterns in detection is the ‘abacus plot’. This plot can help quickly assess which animals are being detected consistently within your array, and identify any temporal or spatial patterns in detection frequency.
+
+Abacus plot ** similar to Vue plots.. but because all detections are plotted acros 9 years it is not detailed
+
+```{r}
+
+hammer %>%
+  ggplot(mapping = aes(x = Local.Date.Time, y = as.factor(Transmitter))) + 
+  xlab("Date") + 
+  ylab("Tag") +
+  geom_point()+
+  theme_classic()
+
+```
+
+
+We can also use facet_wrap to look at detections of each individual across the years.
+
+***The tag A69-9001-26876 should not be in this dataset as it is not a hammer head.  Needs to be removed.***
+
+
+We can also use the facet_wrap() function to explore the detection data further and look at how animals were detected at each reciever.
+
+```{r}
+
+hammer %>%
+  ggplot(mapping = aes(x = Local.Date.Time, y = as.factor(Station.Name))) + 
+  xlab("Date") + ylab("Receiver station") +
+  geom_point() +
+  facet_wrap(~Transmitter) # This time plot seperate boxplots for each shark nrow is across only one row,ill do nrow=3 because we have so much data
+
+```
+
+this is awkward cause there are so many stations. but gives you a good indication of which shark was at which receiver across time.
+
+Now we want to map our detections onto our receiver array using the stat.info receiver locations and dpeloy/recovery information
+
+To do this we are going to use spatial objects.
+
+****We first need to know the coordinate reference system from hawaii ****
+
+Our reciever coordinates, and hence detection coordinates, were recorded in the WGS 84 geographic datum in Decimal Degrees.
+
+For simplicity, each projection can be referred to by a unique ID from the European Petroleum Survey Group (EPSG) geodetic parameter dataset. You can find the relevant EPSG code for your coordinate system from this website. There, simply enter in a key word in the search box and select from the list the correct coordinate system. There is a map image in the top right of the site to help you.
+
+The equivalent EPSG code for WGS 84 is 4326
+
+To set the spatial projection we use the proj4string() function
+
+```{r}
+# convert our blacktip data.frame into a spatial object by assigning latitude and longitude values
+
+hammer = na.omit(hammer)
+
+coordinates(hammer)<- c("Longitude","Latitude")
+
+# Lets check if we have assigned a CRS to our spatial data (no we havent)
+
+proj4string(hammer)
+
+# We can now assign the correct CRS class to our blacktip data
+
+WGS <- CRS("+init=epsg:4326")
+proj4string(hammer) <- WGS
+
+```
+
+
+Now our hammerhead data are associated with the correct CRS, we can use this spatial object with many of R’s GIS tools. However, any measurements of distance and area calculated using this dataset will provide information in decimal degrees, which may not be very useful. In order to calculate distances and areas correctly, we need to transform our data to the correct spatial projection.
+
+
+**UP TO FINDING THE CORRECT MAP GRID NUMBERS FOR HAWAII FROM VINAY GITHUB***
+
+
+may run into an issue because here are two different crs in Hawaii UTM zone 4 (which is Maui, Honolulu, Kauai) and UTM Zone 5(Hawaii/Big Island)
+
+For the moment lets just go with UTM Zone 4 which encompassess Maui and Honolulu cause that's where most of our data is from
+
+now we need the correct projection for the Oahu/Maui areas.
+
+For the Oahu area we are now going to use EPSG:26963 (?) which i found from this spatial reference website : https://spatialreference.org/ref/epsg/26963/
+
+This converts our data to a spatial object - this can then be exported to google earth or gis?
+
+```{r}
+
+GDA <- CRS("+init=epsg:26963") # The equivalent EPSG code for WGS 84 is 28355. 
+hammer.GDA <- spTransform(hammer, CRSobj = GDA)
+
+```
+
+
+First we have to make sure our data is a spatial object
+
+```{r}
+class(hammer)
+
+getwd()
+```
+
+
+lets save this into our folder using the write OGR function
+
+```{r}
+
+writeOGR(hammer, # This field needs to be a SpatialPoints*, SpatialLines* or SpatialPolygons* object
+         dsn="GIS/hammer.shp", layer= "hammer.shp", driver="ESRI Shapefile")
+
+```
+
+
+now we are going to convert our receiver locations from a standard data frame object into a spatial points data frame 
+first, we have to loag the stat.info dataset **this is just a trial because i am waiting to get all deploy/rovery information*
+
+```{r}
+stat.info = read.csv("C:/Users/Molly.Scott/Documents/HAMMERHEAD DATA/stat.info.try.csv")
+
+# Now convert the data.frame object into a SpatialPoints object
+coordinates(stat.info) <- c("Longitude", "Latitude")
+
+```
+
+
+now have a look at the created object
+
+```{r}
+
+class(stat.info)
+str(stat.info)
+
+```
+
+Notice the class has now become a SpatialPointsDataFrame. The str() output contains lots of @ symbols which denote a different slot in this S4 R object. Typing stat.info@data will extract the attribute data (similar to the attribute table in ArcGIS). The X and Y locational information can now be found in the @coords slot. In addition @bbox contains the bounding box coordinates and the @pro4string contains the projection, or coordinate reference system (CRS) information.
+
+```{r}
+stat.info@coords
+stat.info@proj4string
+stat.info@bbox
+head(stat.info@data)
+
+# alternatively use the slot command to extract different 
+# packages of data. As the data is stored in the data slot
+slot(stat.info,'data') 
+
+```
+
+
+stat.info proj4string is NA again, maybe have ot change it to this as above? WGS <- CRS("+init=epsg:4326")
+proj4string(hammer) <- WGS
+
+```{r}
+WGS <- CRS("+init=epsg:4326")
+proj4string(stat.info) <- WGS
+
+```
+
+
+now lets see if we can draw a simple spatial plot for the receiver stations around oahu using ggplot
+
+
+```{r}
+
+data.frame(stat.info) %>%
+  ggplot(mapping = aes(x = Longitude, y = Latitude)) + 
+  xlab("Longitude") + ylab("Latitude") +
+  geom_point()+
+  theme_classic()
+
+```
+
+wecan also make it nicer using ggmap which has a ogogle earth map
+
+```{r}
+
+# Lets replot our reciever stations with a Google base map using the `ggmap` package
+install.packages("ggmap")
+library(ggmap)
+
+# First define our region of Cleveland Bay
+stat.info_bbox <- make_bbox(lon = stat.info$Longitude, 
+                     lat = stat.info$Latitude, f = 0.3) # f controls the Google Zoom
+
+# Lets download a Google base map for our region
+stat.info_map <- get_map(location = stat.info_bbox, 
+                  source = "google", maptype = "hybrid")
+
+# Finally plot the reciever stations using the same `ggplot` grammar
+ggmap(stat.info_map) + 
+  geom_point(data = data.frame(stat.info), 
+             mapping = aes(x = Longitude, y = Latitude)) +
+  xlab("Longitude") + ylab("Latitude")
+```
+
+
+Now that we have allocated our data as a Spatial* object, we can also use the incredibly powerful Leaflet package in R to plot the locations of our hydrophones on an interactive map that you can share with your collaborators. The leaflet package utilises the open-access leaflet JavaScript library (a web programming language), to create web-based maps. We will cover a basic map with some points on it today. See Rstudio’s leaflet page for help and more mapping features, like polygons.
+
+To get started with leaflet, first, make sure you have the leaflet and htmlwidgets packages installed (we did this earlier in the workshop using install.packages()), and then load it into this session:
+
+
+**not sure if this will work but we can try**
+
+```{r}
+install.packages("leaflet")
+install.packages("htmlwidgets")
+
+library(leaflet)
+library(htmlwidgets)
+```
+
+
+start mapping using leaflet
+
+```{r}
+
+myleafletplot <- leaflet() %>%
+  
+  # Base groups (you can add multiple basemaps)
+  addProviderTiles(providers$Esri.WorldImagery, group="Satellite") %>%
+  addProviderTiles(providers$OpenStreetMap, group="Map") %>%
+  
+  # Add reciever location data
+  addCircles(lng=stat.info$Longitude, lat=stat.info$Latitude, fill=FALSE, color="gray", weight=8) 
+
+myleafletplot # Print the map
+```
+
+we can now add detection data from our tagged sharks to show their positions within the array
+```{r}
+str(hammer)
+
+unique(hammer$Transmitter)
+
+with(hammer, table(Transmitter))
+```
+
+
+lets choose: tranbs
+
+```{r}
+
+# Subset detection data from one transmitter () and remove duplicate positions
+hammer.1 <-
+  hammer %>%
+  subset(Transmitter == "A69-9001-20965") %>%
+  remove.duplicates() # remove duplicated positions to reduce the number of points to plot on our leaflet map
+```
+
+now lets add these detections to our map
+
+```{r}
+myleafletplot %>%
+  
+  # add the tag detection data
+  addCircleMarkers(lng = hammer.1$Longitude, lat = hammer.1$Latitude, 
+                   weight = 2, radius = 4, color = "red",
+                   stroke = FALSE, fillOpacity = 1, 
+                   group = "hammer.1") %>% # Dont forget to assign a group to the markers
+  
+  # Layers control
+  addLayersControl(
+    baseGroups = c("Satellite", "Map"),
+    overlayGroups = c("hammer.1"), # add the groups you want to overlay on the base maps
+    options = layersControlOptions(collapsed = FALSE))
+```
+
+You can see this individual only was detected on one receiver in red
+
+lets try for others going to need to re-read the hammer dataset in again because its a spatial dataframe at the moment
+
+lets choose: 
+
+
+lets choose: A69-9001-26876"
+
+```{r}
+
+# Subset detection data from one transmitter () and remove duplicate positions
+hammer.2 <-
+  hammer %>%
+  subset(Transmitter == "A69-9001-26876") %>%
+  remove.duplicates() # remove duplicated positions to reduce the number of points to plot on our leaflet map
+```
+
+now lets add these detections to our map
+
+```{r}
+myleafletplot %>%
+  
+  # add the tag detection data
+  addCircleMarkers(lng = hammer.2$Longitude, lat = hammer.2$Latitude, 
+                   weight = 2, radius = 4, color = "red",
+                   stroke = FALSE, fillOpacity = 1, 
+                   group = "hammer.2") %>% # Dont forget to assign a group to the markers
+  
+  # Layers control
+  addLayersControl(
+    baseGroups = c("Satellite", "Map"),
+    overlayGroups = c("hammer.2"), # add the groups you want to overlay on the base maps
+    options = layersControlOptions(collapsed = FALSE))
+```
+
+
+Lets choose: A69-1303-54784 ***THIS IS A GOOD INDIVIDUAL TO MAP HABITAT USE OF BECAUSE IT SPENDS A LOT OF TIME IN AND AROUND K-BAY***
+
+```{r}
+
+# Subset detection data from one transmitter () and remove duplicate positions
+hammer.3 <-
+  hammer %>%
+  subset(Transmitter == "A69-1303-54784") %>%
+  remove.duplicates() # remove duplicated positions to reduce the number of points to plot on our leaflet map
+```
+
+now lets add these detections to our map
+
+```{r}
+myleafletplot %>%
+  
+  # add the tag detection data
+  addCircleMarkers(lng = hammer.3$Longitude, lat = hammer.3$Latitude, 
+                   weight = 2, radius = 4, color = "red",
+                   stroke = FALSE, fillOpacity = 1, 
+                   group = "hammer.3") %>% # Dont forget to assign a group to the markers
+  
+  # Layers control
+  addLayersControl(
+    baseGroups = c("Satellite", "Map"),
+    overlayGroups = c("hammer.3"), # add the groups you want to overlay on the base maps
+    options = layersControlOptions(collapsed = FALSE))
+```
+
+
+now we have a good individual to work with - we can use the data from this transmitter to map individual movements through time.
+
+we are going to try and make animated tracks of this individuals movements through time,  - going to try and use vinay's version from github
+
+```{r}
+library(devtools) # Helps download development versions of R packages
+
+devtools::install_github("RossDwyer/VTrack") # Install development version of VTrack directly from github
+
+library(VTrack)
+
+```
+
+Because we are working on one individual we are going to need to filter by this individual first.
+
+
+```{r}
+
+hammer.again = fread("C:/Users/Molly.Scott/Documents/HAMMERHEAD DATA/hammer.all.csv", header = TRUE)
+
+str(hammer.again)
+
+hammer.again$V1 = NULL
+hammer.again$V1 = NULL
+
+hammer.again %>%
+  group_by(Transmitter) %>%
+  summarise(NumDetections = n()) # summarise number of detections per tagged shark
+
+hammer.again %>%
+  group_by(Transmitter, Receiver) %>%
+  summarise(NumDetections = n()) # summarise number of detections per shark at each receiver
+
+str(hammer.again)
+
+hammer.again <- 
+  hammer.again %>%
+  separate(Local.Date.Time, c("Date", "Time"), sep = " ", remove=FALSE)
+
+head(hammer.again)
+
+```
+ 
+```{r}
+hammer.3 = hammer.again %>% filter(Transmitter == "A69-1303-54784")
+
+str(hammer.3)
+```
+
+
+```{r}
+hammer.3 %>%
+  ggplot(mapping = aes(x = Local.Date.Time, y = as.factor(Receiver))) + 
+  xlab("Date") + 
+  ylab("Receiver") +
+  geom_point()+
+  theme_classic()
+```
+
+
+```{r}
+
+hammer.3 %>% head()
+
+stat.info.3 = fread("C:/Users/Molly.Scott/Documents/HAMMERHEAD DATA/stat.info.try.csv", header = TRUE)
+
+stat.info.3 %>% head()
+
+leaflet() %>%
+  # Base group
+  addProviderTiles(providers$Esri.WorldImagery, group="Satellite") %>%
+
+  # Add reciever location data
+  addCircles(lng = stat.info.3$Longitude, 
+             lat = stat.info.3$Latitude, 
+             fill=TRUE, color="white", weight=10) 
+
+```
+
+
+Understanding movement paths using telemetry data can easily be done using animations of tracks. Here we will use the move and moveVis packages to create a simple animation of croc tracks.
+
+```{r}
+# install packages and load libraries
+devtools::install_github("16EAGLE/moveVis") # Install development version of moveVis directly from github
+library(move)
+library(moveVis)
+
+get_libraries()
+```
+
+unsure if movevis willwork we will see 
+
+now we  need to format our individuals data
+
+first merge hammer.3 with stat.info.3
+
+```{r}
+##need to make a new column in hammer.again called 'serial number'
+
+hammer.again$Receiver1 = hammer.again$Receiver
+str(hammer.again)
+
+hammer.again = hammer.again %>%
+  separate(Receiver1,
+           c("VR2W", "Serial.Number"))
+  
+str(hammer.again)  
+
+hammer.again$VR2W = NULL
+
+str(hammer.again)
+
+hammer.again$Serial.Number = as.factor(hammer.again$Serial.Number)
+
+hammer.again = as.data.frame(hammer.again)
+
+names[]
+
+```
+
+```{r}
+
+str(stat.info.3)
+
+stat.info.3$Serial.Number = as.factor(stat.info.3$Serial.Number)
+
+```
+
+```{r}
+# Merge locations of recievers with detection data for "Jack-o-saurus D"
+hammer3_detections <- 
+  hammer.again %>%
+  subset(Transmitter == "A69-1303-54784") 
+
+str(hammer3_detections)
+
+hammer3_detections = inner_join(hammer3_detections, stat.info.3, by.x="Station.Name", by.y="Serial.Number")
+
+head(hammer3_detections)
+
+names(hammer3_detections)[names(hammer3_detections)=="Serial.Number"]<-"Receiver.Serial"
+names(hammer3_detections)[names(hammer3_detections)=="Date.and.Time.UTC"]<-"Date.and.Time..UTC."
+
+# Temporally standardise detection data using short-term centers of activity 
+# (We will cover this in more detail in Session 4!!)
+
+hammer <- COA(hammer3_detections, "Transmitter", 200)
+
+
+str(hammer3)
+
+# Lets have a quick look at what jacko's tracks look like
+ggplot() +
+  geom_point(aes(x = Longitude, y = Latitude), data = hammer3_detections, shape = 19) +
+  geom_point(aes(x = Longitude.coa, y = Latitude.coa), data = jacko, color = 2, size = 0.5) +
+  xlab("Longitude") + ylab("Latitude")+
+  theme_classic()
+
+```
+
+# Temporally standardise detection data using short-term centers of activity 
+# (We will cover this in more detail in Session 4!!)
+
+need to rearrange data so it looks like the ATT set up
+
+```{r}
+install.packages("devtools")
+devtools::install_github("vinayudyawer/ATT")
+```
+```{r}
+head(hammer3_detections)
+str(hammer3_detections)
+
+hammer3_detections$Local.Date.Time <- lubridate::ymd_hms(hammer3$Local.Date.Time)
+hammer3_detections$Local.Date.Time <- lubridate::ymd_hms(hammer3$Local.Date.Time)
+
+```
+
+I AM GOING TO START FROM THE BEGINNING AGAIN TO SEE IF I CAN CONVERT EVERYTHING TO THE FORMAT USED IN VINAYS ANIMAL TRACKING TOOLBOX WHICH WILL MAKE EVERYTHING A LOT EASIER!
+
+```{r}
+head(hammer.all)
+str(hammer.all)
+
+names(hammer.all)[names(hammer.all)=="Date.and.Time..UTC"]<-"Date.and.Time..UTC."
+
+View(distinct(hammer.all, Receiver, Station.Name, Latitude, Longitude))
+str(hammer.all)
+
+head(stat.info.3)
+str(stat.info.3)
+
+names(hammer)[names(hammer)=="Station.Name"]<-"station_name"
+names(hammer)[names(hammer)=="Station.Name"]<-"station_name"
+names(hammer)[names(hammer)=="Station.Name"]<-"station_name"
+names(hammer)[names(hammer)=="Station.Name"]<-"station_name"
+names(hammer)[names(hammer)=="Station.Name"]<-"station_name"
+
+```
+
+***UP TO HERE, TRYING TO CONVERT MY DATA SET INTO  ATT APPROPRIATE ONE TO USE THE METRICS FOR EASY CALUCULATIONS AND TO MAKE VIDEOS / MAPS OF ANIMAL MOVEMENTS
+NEED TO DO: MAKE SURE ALL MY FILES ARE IN APPROPRIATE FORMAT THAT IT ASKS FOR ON VINAYS GITHUB INCLUDING TAG METADATA.
+
+I NEED TO CREATE A PROJECT TO STORE AL THIS DATA ON THE CLOUD SOMEWHERE.
+
+SET UP STAT.INFO ACCORDINGLY TOO
+```{r}
+library(ATT)
+
+
+VEMCOdata = hammer.all
+
+statinfo = stat.info.3
+
+ATTdata<- setupData(Tag.Detections = VEMCOdata, 
+                    Station.Information = statinfo, 
+                    source="VEMCO")
+
+```
+
+setupData(hammer3_detections)
+
+hammer3 <- COA(hammer3_detections, "Transmitter", 200) ## CANT DO THIS STEP ##
+
+head(hammer3_detections)
+
+hammer3 = hammer3_detections
+
+# Format the date time field so R can read it properly
+
+hammer3$Local.Date.Time <- lubridate::ymd_hms(hammer3$Local.Date.Time)
+
+str(hammer3)
+
+# Lets have a quick look at what jacko's tracks look like
+ggplot() +
+  geom_point(aes(x = Longitude, y = Latitude), data = jacko_detections, shape = 19) +
+  geom_point(aes(x = Longitude.coa, y = Latitude.coa), data = jacko, color = 2, size = 0.5) +
+  xlab("Longitude") + ylab("Latitude")
+```
+
+
+
+
+
